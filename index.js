@@ -120,6 +120,8 @@ client.on("messageCreate", async (message) => {
 
       if (!args) {
         return message.reply(
+          {
+            content:
           "⚠️ Vui lòng điền đơn theo mẫu:\n" +
           "```!ungtuyen\n" +
           "👤 Họ và tên:\n" +
@@ -128,7 +130,9 @@ client.on("messageCreate", async (message) => {
           "🎮 ID game:\n" +
           "📱 SĐT Ingame:\n" +
           "🌐 Chơi server nào:\n" +
-          "💭 Lý do muốn vào crew: ```"
+          "💭 Lý do muốn vào crew: ```",
+           ephemeral: true
+          }
         );
       }
 

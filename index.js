@@ -206,11 +206,15 @@ client.on("messageCreate", async (message) => {
  */
 async function setMemberNickname(member, prefix = "🧍 Người mới |") {
   try {
-    const fancyName = `${prefix} ${member.user.username}`;
-    await member.setNickname(fancyName, "Tự động đổi nickname khi join");
-    console.log(
-      `✅ Đã đổi nickname của ${member.user.tag} thành "${fancyName}"`
-    );
+    if (member.user.bot) {
+      return;
+    } else {
+      const fancyName = `${prefix} ${member.user.username}`;
+      await member.setNickname(fancyName, "Tự động đổi nickname khi join");
+      console.log(
+        `✅ Đã đổi nickname của ${member.user.tag} thành "${fancyName}"`
+      );
+    }
   } catch (err) {
     console.warn(
       `⚠️ Không thể đổi nickname cho ${member.user.tag}:`,
@@ -258,11 +262,7 @@ client.on(Events.GuildMemberAdd, async (member) => {
 });
 
 // Gán role Thành Viên
-async function approveMember(member) {
-  const role = member.guild.roles.cache.get(CONSTANTS.ROLES.NEW_MEMBER);
-  if (!role) return;
-  await member.roles.add(role, "Đậu phỏng vấn");
-}
+
 
 // Kick member
 async function rejectMember(member) {
@@ -296,13 +296,10 @@ client.on(Events.MessageReactionAdd, async (reaction, user) => {
     const member = await reaction.message.guild.members.fetch(
       reaction.message.author.id
     );
-    if (member.bot) {
-      return;
-    }
+   
     if (reaction.emoji.name === "✅") {
       await removeRole(member, CONSTANTS.ROLES.GUES);
       await addRole(member, CONSTANTS.ROLES.NEW_MEMBER);
-      await approveMember(member);
       await setMemberNickname(member, CONSTANTS.PREFIXES.APPROVED_MEMBER);
       const args =
         reaction.message.embeds[0]?.fields.find((field) => field.name === "ID")
@@ -317,6 +314,7 @@ client.on(Events.MessageReactionAdd, async (reaction, user) => {
           `✅ Chúc mừng <@${originalMessage.member.id}> đã trở thành Thành Viên chính thức!`
         );
       }
+      reaction.message.delete().catch(() => null);
       const approveEmbed = new EmbedBuilder()
         .setColor("#00ff00")
         .setTitle("✅ Đã Phê Duyệt Thành Viên Vào Crew")
@@ -362,24 +360,28 @@ async function sendChannelMessage(channelId, content) {
 
 async function addRole(member, roleId) {
   try {
-     if (member.bot) {
+    if (member.user.bot) {
+      console.log(`⚠️ Bỏ qua add role: ${member.user.tag} là bot`);
       return;
-    }
-    const role = member.guild.roles.cache.get(roleId);
-    if (!role) {
-      console.log(`❌ Không tìm thấy role với ID ${roleId}`);
-      return;
+    } else {
+      const role = member.guild.roles.cache.get(roleId);
+      if (!role) {
+        console.log(`❌ Không tìm thấy role với ID ${roleId}`);
+        return;
+      }
+
+      await member.roles.add(role, "Tự động gán role");
+      console.log(`✅ Đã gán role ${role.name} cho ${member.user.tag}`);
     }
 
-    await member.roles.add(role, "Tự động gán role");
-    console.log(`✅ Đã gán role ${role.name} cho ${member.user.tag}`);
   } catch (err) {
     console.error(`⚠️ Lỗi khi gán role cho ${member.user.tag}:`, err.message);
   }
 }
 async function removeRole(member, roleId) {
   try {
-     if (member.bot) {
+    if (member.user.bot) {
+      console.log(`⚠️ Bỏ qua remove role: ${member.user.tag} là bot`);
       return;
     }
     const role = member.guild.roles.cache.get(roleId);
@@ -406,12 +408,12 @@ async function checkAndUpdateNicknames(guild) {
 
   // Filter members with the specific role
   const membersWithRole = guild.members.cache.filter(
-    (member) =>{
-       if (member.bot) {
-      return;
-    }
+    (member) => {
+      if (member.bot) {
+        return;
+      }
       member.roles.cache.has(CONSTANTS.ROLES.NEW_MEMBER) && !member.user.bot
-  }
+    }
   );
 
   for (const member of membersWithRole.values()) {

@@ -362,6 +362,9 @@ async function sendChannelMessage(channelId, content) {
 
 async function addRole(member, roleId) {
   try {
+     if (member.bot) {
+      return;
+    }
     const role = member.guild.roles.cache.get(roleId);
     if (!role) {
       console.log(`❌ Không tìm thấy role với ID ${roleId}`);
@@ -376,6 +379,9 @@ async function addRole(member, roleId) {
 }
 async function removeRole(member, roleId) {
   try {
+     if (member.bot) {
+      return;
+    }
     const role = member.guild.roles.cache.get(roleId);
     if (!role) {
       console.log(`❌ Không tìm thấy role với ID ${roleId}`);
@@ -392,6 +398,7 @@ async function removeRole(member, roleId) {
   }
 }
 async function checkAndUpdateNicknames(guild) {
+
   const now = Date.now();
   const oneWeek = 7 * 24 * 60 * 60 * 1000;
 
@@ -399,8 +406,12 @@ async function checkAndUpdateNicknames(guild) {
 
   // Filter members with the specific role
   const membersWithRole = guild.members.cache.filter(
-    (member) =>
+    (member) =>{
+       if (member.bot) {
+      return;
+    }
       member.roles.cache.has(CONSTANTS.ROLES.NEW_MEMBER) && !member.user.bot
+  }
   );
 
   for (const member of membersWithRole.values()) {

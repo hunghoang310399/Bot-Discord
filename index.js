@@ -169,12 +169,23 @@ client.on("messageCreate", async (message) => {
 
       // Thông báo đã gửi thành công
       await message.reply(
-        "✅ Đã gửi đơn ứng tuyển của bạn! Vui lòng chờ phỏng vấn."
+        {
+          content:
+            "✅ Đã gửi đơn ứng tuyển thành công! Vui lòng chờ phỏng vấn.",
+          ephemeral: true
+        }
+
       );
     } catch (error) {
       console.error("Application Error:", error);
+
       await message.reply(
-        "❌ Có lỗi xảy ra khi gửi đơn. Vui lòng thử lại sau!"
+        {
+          content:
+            "❌ Có lỗi xảy ra khi gửi đơn. Vui lòng thử lại sau!",
+          ephemeral: true
+        }
+
       );
     }
   }
@@ -311,9 +322,10 @@ client.on(Events.MessageReactionAdd, async (reaction, user) => {
 
       const args2 = originalMessage.content.slice("!ungtuyen".length).trim();
       if (originalMessage) {
-        await originalMessage.reply(
-          `✅ Chúc mừng <@${originalMessage.member.id}> đã trở thành Thành Viên chính thức!`
-        );
+        await originalMessage.reply({
+          content: `✅ Chúc mừng <@${originalMessage.member.id}> đã trở thành Thành Viên chính thức!`,
+          ephemeral: true
+        });
       }
       reaction.message.delete().catch(() => null);
       const approveEmbed = new EmbedBuilder()
@@ -332,7 +344,10 @@ client.on(Events.MessageReactionAdd, async (reaction, user) => {
     } else if (reaction.emoji.name === "❌") {
       await rejectMember(member);
       await reaction.message.reply(
-        `❌ <@${member.id}> đã bị từ chối tham gia Thành Viên.`
+        {
+          content:   `❌ <@${member.id}> đã bị từ chối tham gia Thành Viên.`,
+          ephemeral: true
+        }
       );
     }
   } catch (err) {

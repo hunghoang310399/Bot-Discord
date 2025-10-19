@@ -4,6 +4,7 @@ const CONSTANTS = {
   CHANNELS: {
     WELCOME: '871059181631864903',
     FORM: '1353746936385110047',
+    LOG_TV:'1429275713223135263'
   },
   ROLES: {
     NEW_MEMBER: '1429213724144566303',
@@ -11,9 +12,9 @@ const CONSTANTS = {
     MANAGER: 'YOUR_MANAGER_ROLE_ID', // Add your manager role ID
   },
   PREFIXES: {
-    NEW_MEMBER: '𝓚𝓱𝓪́𝓬𝓱 |',
-    APPROVED_MEMBER: '𝓣𝓥𝓜 |',
-    VETERAN: 'ℋℋℋ |',
+    NEW_MEMBER: 'Khách |',
+    APPROVED_MEMBER: 'TVM |',
+    VETERAN: 'HHH |',
   },
   TIMING: {
     ONE_WEEK: 7 * 24 * 60 * 60 * 1000,
@@ -205,29 +206,62 @@ client.on(Events.MessageReactionAdd, async (reaction, user) => {
 
     const reactor = await reaction.message.guild.members.fetch(user.id);
 
-    // const MANAGER_ROLE_ID = 'ROLE_MANAGER_ID';
-    // if (!reactor.roles.cache.has(MANAGER_ROLE_ID)) {
-    //   await reaction.users.remove(user);
-    //   return;
-    // }
+    const MANAGER_ROLE_ID = '870955691014234132';
+    if (!reactor.roles.cache.has(MANAGER_ROLE_ID)) {
+      await reaction.users.remove(user);
+      return;
+    }
 
     const member = await reaction.message.guild.members.fetch(reaction.message.author.id);
 
     if (reaction.emoji.name === '✅') {
-      await removeRole(member, CONSTANTS.ROLES.NEW_MEMBER);
-      await addRole(member, CONSTANTS.ROLES.MEMBER);
+      await addRole(member, CONSTANTS.ROLES.NEW_MEMBER);
       await approveMember(member);
       await setMemberNickname(member, CONSTANTS.PREFIXES.VETERAN);
-      await reaction.message.channel.send(`✅ ${member.user.tag} đã được duyệt bởi ${user.tag}`);
+      await reaction.message.reply(`✅ Chúc mừng <@${member.id}> đã trở thành Thành Viên chính thức!`);
+       const approveEmbed = new EmbedBuilder()
+    .setColor('#00ff00')
+    .setTitle('✅ Đã Phê Duyệt Thành Viên')
+    .setDescription(
+      `👤 **Người được duyệt:** ${member.toString()}\n` +
+      `🎖️ **Được duyệt bởi:** ${user.toString()}\n` +
+      `⏰ **Thời gian duyệt:** <t:${Math.floor(Date.now() / 1000)}:F>\n` +
+      `📝 **Form ID:** ${reaction.message.id}\n\n` +
+      `📜 **Nội dung form:**\n${reaction.message.content}`
+    )
+    .setFooter({ text: CONSTANTS.BRANDING.FOOTER_TEXT })
+    .setTimestamp();
+      await sendChannelMessage(CONSTANTS.CHANNELS.LOG_TV, approveEmbed);
     } else if (reaction.emoji.name === '❌') {
       await rejectMember(member);
-      await reaction.message.channel.send(`❌ ${member.user.tag} đã rớt bởi ${user.tag}`);
+      await reaction.message.reply(`❌ <@${member.id}> đã bị từ chối tham gia Thành Viên.`);      
     }
 
   } catch (err) {
     console.error('Reaction Error:', err);
   }
 });
+async function sendChannelMessage(channelId, content) {
+  try {
+    const channel = await client.channels.fetch(channelId);
+    if (!channel) {
+      console.error(`❌ Không tìm thấy kênh với ID: ${channelId}`);
+      return null;
+    }
+
+    const messageOptions = content instanceof EmbedBuilder ? 
+      { embeds: [content] } : { content };
+
+    const sentMessage = await channel.send(messageOptions);
+    console.log(`✅ Đã gửi tin nhắn vào kênh ${channel.name}`);
+    return sentMessage;
+
+  } catch (error) {
+    console.error(`❌ Lỗi khi gửi tin nhắn:`, error);
+    return null;
+  }
+}
+
 
 async function addRole(member, roleId) {
   try {
@@ -260,7 +294,7 @@ async function removeRole(member, roleId) {
 async function checkAndUpdateNicknames(guild) {
   const now = Date.now();
   const oneWeek = 7 * 24 * 60 * 60 * 1000;
-  const MEMBER_ROLE_ID = CONSTANTS.ROLES.MEMBER;
+  const MEMBER_ROLE_ID = CONSTANTS.ROLES.NEW_MEMBER;
   
   await guild.members.fetch(); // đảm bảo load hết member
 
@@ -270,6 +304,8 @@ async function checkAndUpdateNicknames(guild) {
   );
 
   for (const member of membersWithRole.values()) {
+   await removeRole(member, MEMBER_ROLE_ID);
+   await addRole(member, CONSTANTS.ROLES.MEMBER);
     const joinedAt = member.joinedTimestamp;
     if (!joinedAt) continue;
 

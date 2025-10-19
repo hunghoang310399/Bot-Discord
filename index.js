@@ -208,13 +208,13 @@ async function setMemberNickname(member, prefix = "🧍 Người mới |") {
   try {
     if (member.user.bot) {
       return;
-    } else {
-      const fancyName = `${prefix} ${member.user.username}`;
-      await member.setNickname(fancyName, "Tự động đổi nickname khi join");
-      console.log(
-        `✅ Đã đổi nickname của ${member.user.tag} thành "${fancyName}"`
-      );
     }
+    const fancyName = `${prefix} ${member.user.username}`;
+    await member.setNickname(fancyName, "Tự động đổi nickname khi join");
+    console.log(
+      `✅ Đã đổi nickname của ${member.user.tag} thành "${fancyName}"`
+    );
+
   } catch (err) {
     console.warn(
       `⚠️ Không thể đổi nickname cho ${member.user.tag}:`,
@@ -296,18 +296,19 @@ client.on(Events.MessageReactionAdd, async (reaction, user) => {
     const member = await reaction.message.guild.members.fetch(
       reaction.message.author.id
     );
-   
+
     if (reaction.emoji.name === "✅") {
-      await removeRole(member, CONSTANTS.ROLES.GUES);
-      await addRole(member, CONSTANTS.ROLES.NEW_MEMBER);
-      await setMemberNickname(member, CONSTANTS.PREFIXES.APPROVED_MEMBER);
+      const channel = await client.channels.fetch(CONSTANTS.CHANNELS.FORM);
       const args =
         reaction.message.embeds[0]?.fields.find((field) => field.name === "ID")
           ?.value || "Không có ID";
-      const channel = await client.channels.fetch(CONSTANTS.CHANNELS.FORM);
       const originalMessage = await channel.messages
         .fetch(args)
         .catch(() => null);
+      await removeRole(originalMessage.member, CONSTANTS.ROLES.GUES);
+      await addRole(originalMessage.member, CONSTANTS.ROLES.NEW_MEMBER);
+      await setMemberNickname(originalMessage.member, CONSTANTS.PREFIXES.APPROVED_MEMBER);
+
       const args2 = originalMessage.content.slice("!ungtuyen".length).trim();
       if (originalMessage) {
         await originalMessage.reply(
@@ -319,7 +320,7 @@ client.on(Events.MessageReactionAdd, async (reaction, user) => {
         .setColor("#00ff00")
         .setTitle("✅ Đã Phê Duyệt Thành Viên Vào Crew")
         .setDescription(
-          `👤 **Người được duyệt:** ${member.toString()}\n` +
+          `👤 **Người được duyệt:** ${originalMessage.member.toString()}\n` +
           `🎖️ **Được duyệt bởi:** ${user.toString()}\n` +
           `⏰ **Thời gian duyệt:** <t:${Math.floor(Date.now() / 1000)}:F>\n` +
           `📝 **Form ID:** ${reaction.message.id}\n\n` +
@@ -363,16 +364,15 @@ async function addRole(member, roleId) {
     if (member.user.bot) {
       console.log(`⚠️ Bỏ qua add role: ${member.user.tag} là bot`);
       return;
-    } else {
-      const role = member.guild.roles.cache.get(roleId);
-      if (!role) {
-        console.log(`❌ Không tìm thấy role với ID ${roleId}`);
-        return;
-      }
-
-      await member.roles.add(role, "Tự động gán role");
-      console.log(`✅ Đã gán role ${role.name} cho ${member.user.tag}`);
     }
+    const role = member.guild.roles.cache.get(roleId);
+    if (!role) {
+      console.log(`❌ Không tìm thấy role với ID ${roleId}`);
+      return;
+    }
+
+    await member.roles.add(role, "Tự động gán role");
+    console.log(`✅ Đã gán role ${role.name} cho ${member.user.tag}`);
 
   } catch (err) {
     console.error(`⚠️ Lỗi khi gán role cho ${member.user.tag}:`, err.message);

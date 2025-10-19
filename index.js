@@ -239,7 +239,7 @@ client.on(Events.GuildMemberAdd, async (member) => {
     await setMemberNickname(member, CONSTANTS.PREFIXES.NEW_MEMBER);
     // Tạo Embed chào mừng với Unicode fancy
     const embed = new EmbedBuilder()
-      .setColor("#ed09c7ff")
+      .setColor("#ff09ea")
       .setTitle(`🐉 𝓒𝓱à𝓸 𝓶ừ𝓷𝓰 đế𝓷 𝓿ớ𝓲 ℌỒ𝔑𝔊 ℌƯ𝔑𝔊 ℌỘℑ! 🐉`)
       .setDescription(
         `Rất vui khi <@${member.id}> gia nhập ℌỒ𝔑𝔊 ℌƯ𝔑𝔊 ℌỘℑ! hãy làm theo hướng dẫn dưới đây để ứng tuyển chính thức.\n` +

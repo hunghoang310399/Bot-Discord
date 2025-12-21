@@ -18,12 +18,14 @@ const CONSTANTS = {
     NEW_MEMBER: "1429213724144566303",
     MEMBER: "1429236814782402711",
     MANAGER: "YOUR_MANAGER_ROLE_ID",
-    GUES: "1429188588595314899", // Add your manager role ID
+    GUES: "1429188588595314899",
+    WAIT:"1452306306466844704" // Add your manager role ID
   },
   PREFIXES: {
     NEW_MEMBER: "Khách |",
     APPROVED_MEMBER: "TVM |",
     VETERAN: "HHH |",
+    WAIT: "Chờ PV |"
   },
   TIMING: {
     ONE_WEEK: 7 * 24 * 60 * 60 * 1000,
@@ -117,7 +119,7 @@ client.on("messageCreate", async (message) => {
         );
       }
       const args = message.content.slice("!ungtuyen".length).trim();
-
+      
       if (!args) {
         return message.reply(
           {
@@ -170,6 +172,10 @@ client.on("messageCreate", async (message) => {
       // Thêm reaction để duyệt/từ chối
       await sentForm.react(CONSTANTS.REACTIONS.APPROVE);
       await sentForm.react(CONSTANTS.REACTIONS.REJECT);
+
+      // Gán role GUES cho người nộp đơn
+      await setMemberNickname(member, CONSTANTS.PREFIXES.WAIT);
+      await addRole(message.member, CONSTANTS.ROLES.WAIT);
 
       // Thông báo đã gửi thành công
       await message.reply(
@@ -252,6 +258,7 @@ client.on(Events.GuildMemberAdd, async (member) => {
     if (!welcomeChannel) return;
 
     await setMemberNickname(member, CONSTANTS.PREFIXES.NEW_MEMBER);
+    await addRole(member, CONSTANTS.ROLES.GUES);
     // Tạo Embed chào mừng với Unicode fancy
     const embed = new EmbedBuilder()
       .setColor("#ff09ea")
@@ -299,15 +306,6 @@ client.on(Events.MessageReactionAdd, async (reaction, user) => {
     if (reaction.message.partial) await reaction.message.fetch();
 
     if (reaction.message.channel.id !== CONSTANTS.CHANNELS.FORM_NOTIFY) return;
-
-    const reactor = await reaction.message.guild.members.fetch(user.id);
-
-    const MANAGER_ROLE_ID = "870955691014234132";
-    if (!reactor.roles.cache.has(MANAGER_ROLE_ID)) {
-      await reaction.users.remove(user);
-      return;
-    }
-
     const member = await reaction.message.guild.members.fetch(
       reaction.message.author.id
     );
@@ -347,6 +345,7 @@ client.on(Events.MessageReactionAdd, async (reaction, user) => {
       await sendChannelMessage(CONSTANTS.CHANNELS.LOG_TV, approveEmbed);
     } else if (reaction.emoji.name === "❌") {
       await rejectMember(member);
+      reaction.message.delete().catch(() => null);
       await reaction.message.reply(
         {
           content:   `❌ <@${member.id}> đã bị từ chối tham gia Thành Viên.`,

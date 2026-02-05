@@ -15,11 +15,10 @@ const CONSTANTS = {
     FORM_NOTIFY: "1429292752499380285",
   },
   ROLES: {
-    NEW_MEMBER: "1429213724144566303",
-    MEMBER: "1429236814782402711",
+    NEW_MEMBER: "1468993677056802989",
     MANAGER: "YOUR_MANAGER_ROLE_ID",
     GUES: "1429188588595314899",
-    WAIT:"1452306306466844704" // Add your manager role ID
+    WAIT:"1468993822045376633" // Add your manager role ID
   },
   PREFIXES: {
     NEW_MEMBER: "Khách |",
@@ -70,25 +69,54 @@ client.once("clientReady", () => {
 
 // 📌 Auto tạo phòng voice khi join "➕ Tạo Phòng"
 client.on("voiceStateUpdate", async (oldState, newState) => {
-  if (newState.channel && newState.channel.name === "➕ Tạo Phòng") {
-    const guild = newState.guild;
+  if (!newState.channel) return;
+  if (newState.channel.name !== "➕ Tạo Phòng") return;
 
-    const newChannel = await guild.channels.create({
-      name: `Phòng của ${newState.member.user.globalName || newState.member.user.username
-        }`,
-      type: 2, // voice channel
-      parent: newState.channel.parent,
-    });
+  const guild = newState.guild;
+  const member = newState.member;
+  const sourceChannel = newState.channel;
 
-    await newState.member.voice.setChannel(newChannel);
+  // ❌ Bot thiếu quyền
+  if (
+    !guild.members.me.permissions.has([
+      PermissionsBitField.Flags.ManageChannels,
+      PermissionsBitField.Flags.MoveMembers,
+    ])
+  ) return;
 
-    const interval = setInterval(async () => {
-      if (newChannel.members.size === 0) {
-        await newChannel.delete();
-        clearInterval(interval);
-      }
-    }, 30000);
+  // ❌ Nếu user đã có phòng
+  const existedChannel = guild.channels.cache.find(
+    ch =>
+      ch.type === ChannelType.GuildVoice &&
+      ch.name === `Phòng của ${member.user.globalName || member.user.username}`
+  );
+
+  if (existedChannel) {
+    await member.voice.setChannel(existedChannel);
+    return;
   }
+
+  // ✅ Tạo phòng – COPY Y HỆT quyền của channel ➕ Tạo Phòng
+  const newChannel = await guild.channels.create({
+    name: `Phòng của ${member.user.globalName || member.user.username}`,
+    type: ChannelType.GuildVoice,
+    parent: sourceChannel.parent,
+    permissionOverwrites: sourceChannel.permissionOverwrites.cache.map(p => ({
+      id: p.id,
+      allow: p.allow.bitfield,
+      deny: p.deny.bitfield,
+    })),
+  });
+
+  await member.voice.setChannel(newChannel);
+
+  // 🧹 Auto xoá khi trống
+  const interval = setInterval(async () => {
+    if (newChannel.members.size === 0) {
+      clearInterval(interval);
+      await newChannel.delete().catch(() => {});
+    }
+  }, 30000);
 });
 
 client.on("messageCreate", async (message) => {
@@ -256,9 +284,6 @@ client.on(Events.GuildMemberAdd, async (member) => {
       CONSTANTS.CHANNELS.WELCOME
     );
     if (!welcomeChannel) return;
-
-    await setMemberNickname(member, CONSTANTS.PREFIXES.NEW_MEMBER);
-    await addRole(member, CONSTANTS.ROLES.GUES);
     // Tạo Embed chào mừng với Unicode fancy
     const embed = new EmbedBuilder()
       .setColor("#ff09ea")
@@ -318,7 +343,6 @@ client.on(Events.MessageReactionAdd, async (reaction, user) => {
       const originalMessage = await channel.messages
         .fetch(args)
         .catch(() => null);
-      await removeRole(originalMessage.member, CONSTANTS.ROLES.GUES);
       await addRole(originalMessage.member, CONSTANTS.ROLES.NEW_MEMBER);
       await setMemberNickname(originalMessage.member, CONSTANTS.PREFIXES.APPROVED_MEMBER);
 
@@ -417,48 +441,7 @@ async function removeRole(member, roleId) {
     );
   }
 }
-async function checkAndUpdateNicknames(guild) {
 
-  const now = Date.now();
-  const oneWeek = 7 * 24 * 60 * 60 * 1000;
-
-  await guild.members.fetch(); // đảm bảo load hết member
-
-  // Filter members with the specific role
-  const membersWithRole = guild.members.cache.filter(
-    (member) => {
-      if (member.bot) {
-        return;
-      }
-      member.roles.cache.has(CONSTANTS.ROLES.NEW_MEMBER) && !member.user.bot
-    }
-  );
-
-  for (const member of membersWithRole.values()) {
-    await removeRole(member, CONSTANTS.ROLES.NEW_MEMBER);
-    await addRole(member, CONSTANTS.ROLES.MEMBER);
-    const joinedAt = member.joinedTimestamp;
-    if (!joinedAt) continue;
-
-    if (now - joinedAt >= oneWeek) {
-      // Nếu họ vẫn chưa được đổi tên thì đổi
-      if (!member.nickname?.includes("Lâu năm")) {
-        const newNick = `${CONSTANTS.PREFIXES.VETERAN} ${member.user.username}`;
-        try {
-          await member.setNickname(newNick, "Tự động đổi biệt danh sau 1 tuần");
-          console.log(
-            `✅ Đã đổi biệt danh cho ${member.user.tag} thành ${newNick}`
-          );
-        } catch (err) {
-          console.warn(
-            `⚠️ Không thể đổi nickname cho ${member.user.tag}:`,
-            err.message
-          );
-        }
-      }
-    }
-  }
-}
 
 // // Add this new message handler after your existing handlers
 

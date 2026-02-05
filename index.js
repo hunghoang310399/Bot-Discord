@@ -5,6 +5,8 @@ import {
   Events,
   EmbedBuilder,
   Message,
+  PermissionsBitField,
+  ChannelType
 } from "discord.js";
 // Constants for IDs
 const CONSTANTS = {
@@ -57,14 +59,6 @@ const client = new Client({
 
 client.once("clientReady", () => {
   console.log(`✅ Bot đã sẵn sàng: ${client.user.tag}`);
-  // Lặp qua mỗi server mà bot ở
-  client.guilds.cache.forEach((guild) => {
-    // Chạy ngay khi start
-    checkAndUpdateNicknames(guild);
-
-    // Sau đó 24h chạy lại 1 lần
-    setInterval(() => checkAndUpdateNicknames(guild), 24 * 60 * 60 * 1000);
-  });
 });
 
 // 📌 Auto tạo phòng voice khi join "➕ Tạo Phòng"
@@ -76,13 +70,6 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
   const member = newState.member;
   const sourceChannel = newState.channel;
 
-  // ❌ Bot thiếu quyền
-  if (
-    !guild.members.me.permissions.has([
-      PermissionsBitField.Flags.ManageChannels,
-      PermissionsBitField.Flags.MoveMembers,
-    ])
-  ) return;
 
   // ❌ Nếu user đã có phòng
   const existedChannel = guild.channels.cache.find(

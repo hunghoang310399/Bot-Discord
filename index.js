@@ -202,7 +202,7 @@ client.on("messageCreate", async (message) => {
       await sentForm.react(CONSTANTS.REACTIONS.REJECT);
 
       // Gán role GUES cho người nộp đơn
-      await setMemberNickname(member, CONSTANTS.PREFIXES.WAIT);
+      await setMemberNickname(message.member, CONSTANTS.PREFIXES.WAIT);
       await addRole(message.member, CONSTANTS.ROLES.WAIT);
 
       // Thông báo đã gửi thành công

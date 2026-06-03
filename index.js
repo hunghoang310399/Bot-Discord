@@ -6,7 +6,9 @@ import {
   EmbedBuilder,
   Message,
   PermissionsBitField,
-  ChannelType
+  ChannelType,
+  joinVoiceChannel,
+  getVoiceConnection
 } from "discord.js";
 // Constants for IDs
 const CONSTANTS = {
@@ -236,7 +238,47 @@ client.on("messageCreate", async (message) => {
     }
   }
 });
+client.on("messageCreate", async (message) => {
+  if (message.author.bot) return;
 
+  // !join
+  if (message.content === "!join") {
+    const voiceChannel = message.member?.voice.channel;
+
+    if (!voiceChannel) {
+      return message.reply("❌ Bạn cần vào voice trước.");
+    }
+
+    joinVoiceChannel({
+      channelId: voiceChannel.id,
+      guildId: voiceChannel.guild.id,
+      adapterCreator: voiceChannel.guild.voiceAdapterCreator,
+      selfMute: true,
+      selfDeaf: false,
+    });
+
+    return message.reply(`✅ Đã vào ${voiceChannel.name}`);
+  }
+
+  // !leave
+  if (message.content === "!leave") {
+    const guildId = message.guild?.id;
+
+    if (!guildId) {
+      return message.reply("❌ Không tìm thấy server (guild).");
+    }
+
+    const connection = getVoiceConnection(guildId);
+
+    if (!connection) {
+      return message.reply("❌ Bot không ở trong voice.");
+    }
+
+    connection.destroy();
+
+    return message.reply("👋 Đã rời voice.");
+  }
+});
 /**
  * Đổi nickname cho member với prefix fancy
  */
@@ -430,46 +472,4 @@ async function removeRole(member, roleId) {
 }
 
 
-// // Add this new message handler after your existing handlers
-
-// client.on("messageCreate", async (message) => {
-//   if (message.author.bot) return;
-
-//   // Check if message is a reply to the bot
-//   if (message.reference) {
-//     try {
-//       const repliedTo = await message.channel.messages.fetch(message.reference.messageId);
-//       if (repliedTo.author.id === client.user.id) {
-//         // Show typing indicator
-//         message.channel.sendTyping();
-
-//         // Initialize Gemini
-//        const genAI = new GoogleGenerativeAI("AIzaSyD6C5hw83Tt9vYPObA8mU5TIoiB-e4uOuI");
-//         const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-
-//         // Create context-aware prompt
-//         const prompt = `Bạn là một bot trò chuyện thân thiện. Hãy trả lời tin nhắn sau một cách ngắn gọn và thân thiện: "${message.content}"`;
-
-//         // Generate response
-//         const result = await model.generateContent(prompt);
-//         const text = result.response.text();
-
-//         // Handle response length
-//         if (text.length <= 2000) {
-//           await message.reply(text);
-//         } else {
-//           const chunks = text.match(/.{1,2000}/g) || [];
-//           for (const chunk of chunks) {
-//             await message.channel.send(chunk);
-//           }
-//         }
-//       }
-//     } catch (error) {
-//       console.error("Reply Error:", error);
-//       await message.reply("❌ Xin lỗi, tôi không thể xử lý phản hồi lúc này.");
-//     }
-//   }
-// });
-
-// ...existing code...
 client.login(''); // ❌ NHỚ đổi sang token mới, token cũ đã lộ
